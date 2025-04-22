@@ -71,13 +71,22 @@ include 'header.php';
                                 </div>
                                 
                                 <div class="col-12">
-                                    <label for="phone" class="form-label">Phone*</label>
-                                    <input type="tel" class="form-control" id="phone" name="phone" 
-                                           value="<?= $user ? htmlspecialchars($user['phone'] ?? '') : '' ?>" 
-                                           pattern="\+?[0-9]{10,15}" required>
-                                    <small class="text-muted">Format: 10-15 digits, may include '+' prefix</small>
-                                    <div class="invalid-feedback">Please enter a valid phone number.</div>
-                                </div>
+        <label for="phone" class="form-label">Phone*</label>
+        <div class="input-group">
+            <select class="form-select country-code-select" style="max-width: 120px;" 
+                    id="country-code" name="country_code">
+                <option value="+91" <?= ($_SESSION['form_data']['country_code'] ?? '') === '+91' ? 'selected' : '' ?>>+91 (IN)</option>
+                <option value="+1" <?= ($_SESSION['form_data']['country_code'] ?? '') === '+1' ? 'selected' : '' ?>>+1 (US)</option>
+                <option value="+44" <?= ($_SESSION['form_data']['country_code'] ?? '') === '+44' ? 'selected' : '' ?>>+44 (UK)</option>
+            </select>
+            <input type="tel" class="form-control" id="phone" name="phone" 
+                   value="<?= htmlspecialchars($_SESSION['form_data']['phone'] ?? 
+                              ($user ? preg_replace('/^\+?\d{1,3}/', '', $user['phone'] ?? '') : '')) ?>" 
+                   pattern="\d{10}" required>
+        </div>
+        <small class="text-muted" id="phone-format">Format: 10 digits (without country code)</small>
+        <div class="invalid-feedback">Please enter exactly 10 digits.</div>
+    </div>
                                 
                                 <div class="col-12">
                                     <label for="address" class="form-label">Address*</label>
@@ -306,6 +315,88 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const countrySelect = document.getElementById('country');
+    const countryCodeSelect = document.getElementById('country-code');
+    const phoneInput = document.getElementById('phone');
+    const phoneFormat = document.getElementById('phone-format');
+
+    function updateCountryCode() {
+        const country = countrySelect.value;
+        const option = countryCodeSelect.querySelector(`option[data-country="${country}"]`);
+        if (option) {
+            countryCodeSelect.value = option.value;
+        }
+    }
+
+    updateCountryCode();
+
+    countrySelect.addEventListener('change', updateCountryCode);
+
+    phoneInput.addEventListener('input', function() {
+        const digits = this.value.replace(/\D/g, '');
+        if (digits.length > 10) {
+            this.value = digits.slice(0, 10);
+        }
+    });
+
+    document.getElementById('checkout-form').addEventListener('submit', function(e) {
+        const phoneDigits = phoneInput.value.replace(/\D/g, '');
+        if (phoneDigits.length !== 10) {
+            phoneInput.classList.add('is-invalid');
+            phoneInput.focus();
+            e.preventDefault();
+        }
+    });
+});
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    <?php if (isset($_SESSION['checkout_error'])): ?>
+        const errorAlert = document.createElement('div');
+        errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+        errorAlert.innerHTML = `
+            <?= $_SESSION['checkout_error'] ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.container').prepend(errorAlert);
+    <?php endif; ?>
+
+    const phoneInput = document.getElementById('phone');
+    phoneInput.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
+
+    const form = document.getElementById('checkout-form');
+    form.addEventListener('submit', function(e) {
+        const phoneDigits = phoneInput.value.replace(/\D/g, '');
+        if (phoneDigits.length !== 10) {
+            e.preventDefault();
+            phoneInput.classList.add('is-invalid');
+            phoneInput.focus();
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-danger mt-3';
+            errorDiv.textContent = 'Phone number must be exactly 10 digits (excluding country code).';
+
+            const existingError = form.querySelector('.alert-danger');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            form.appendChild(errorDiv);
+        }
+    });
+    phoneInput.addEventListener('input', function() {
+        this.classList.remove('is-invalid');
+        const errorDiv = form.querySelector('.alert-danger');
+        if (errorDiv) {
+            errorDiv.remove();
+        }
+    });
+});
+
 </script>
 
 <?php include 'footer.php'; ?>

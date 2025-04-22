@@ -48,7 +48,7 @@ include 'header.php';
 <<section class="confirmation-section py-5 bg-darker">
     <div class="container">
         <div class="card border-accent">
-            <div class="card-header bg-accent text-dark">
+            <div class="card-header bg-accent text-white">
                 <h2 class="mb-0"><i class="bi bi-check-circle-fill me-2"></i>Order Confirmed</h2>
             </div>
             

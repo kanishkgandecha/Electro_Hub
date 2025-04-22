@@ -3,6 +3,32 @@ ob_start();
 session_start();
 require_once 'functions.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $_SESSION['checkout_error'] = 'Invalid request method.';
+    header("Location: checkout.php");
+    exit();
+}
+
+if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    $_SESSION['checkout_error'] = 'Invalid CSRF token.';
+    header("Location: checkout.php");
+    exit();
+}
+
+$_SESSION['form_data'] = $_POST;
+
+$countryCode = $_POST['country_code'] ?? '';
+$phoneDigits = preg_replace('/\D/', '', $_POST['phone'] ?? '');
+
+if (strlen($phoneDigits) !== 10) {
+    $_SESSION['checkout_error'] = 'Phone number must be exactly 10 digits (excluding country code).';
+    header("Location: checkout.php");
+    exit();
+}
+
+unset($_SESSION['form_data']);
+unset($_SESSION['checkout_error']);
+
 try {
     if (!isset($_SESSION['user_id'])) {
         throw new Exception('Authentication required', 401);
@@ -11,6 +37,19 @@ try {
     if (!isset($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
         throw new Exception('Invalid cart data structure');
     }
+
+$countryCode = $_POST['country_code'] ?? '';
+$phoneDigits = preg_replace('/\D/', '', $_POST['phone'] ?? '');
+
+if (strlen($phoneDigits) !== 10) {
+    $_SESSION['checkout_error'] = 'Phone number must be exactly 10 digits (excluding country code).';
+    header("Location: checkout.php");
+    exit();
+}
+
+$fullPhoneNumber = $countryCode . $phoneDigits;
+
+
 
     sanitizeCart($_SESSION['cart']);
     
